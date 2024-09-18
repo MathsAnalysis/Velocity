@@ -23,9 +23,9 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatAcknowledgementPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.CommandHandler;
-import java.util.concurrent.CompletableFuture;
-import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.concurrent.CompletableFuture;
 
 public class SessionCommandHandler implements CommandHandler<SessionPlayerCommandPacket> {
 
@@ -47,19 +47,6 @@ public class SessionCommandHandler implements CommandHandler<SessionPlayerComman
     if (packet.lastSeenMessages == null) {
       return null;
     }
-    if (packet.isSigned()) {
-      // Any signed message produced by the client *must* be passed through to the server in order to maintain a
-      // consistent state for future messages.
-      logger.fatal("A plugin tried to deny a command with signable component(s). "
-          + "This is not supported. "
-          + "Disconnecting player " + player.getUsername() + ". Command packet: " + packet);
-      player.disconnect(Component.text(
-          "A proxy plugin caused an illegal protocol state. "
-              + "Contact your network administrator."));
-      return null;
-    }
-    // An unsigned command with a 'last seen' update will not happen as of 1.20.5+, but for earlier versions - we still
-    // need to pass through the acknowledgement
     final int offset = packet.lastSeenMessages.getOffset();
     if (offset != 0) {
       return new ChatAcknowledgementPacket(offset);
@@ -77,16 +64,6 @@ public class SessionCommandHandler implements CommandHandler<SessionPlayerComman
 
   @Nullable
   private MinecraftPacket modifyCommand(SessionPlayerCommandPacket packet, String newCommand) {
-    if (packet.isSigned()) {
-      logger.fatal("A plugin tried to change a command with signed component(s). "
-          + "This is not supported. "
-          + "Disconnecting player " + player.getUsername() + ". Command packet: " + packet);
-      player.disconnect(Component.text(
-          "A proxy plugin caused an illegal protocol state. "
-              + "Contact your network administrator."));
-      return null;
-    }
-
     return this.player.getChatBuilderFactory()
         .builder()
         .setTimestamp(packet.timeStamp)
